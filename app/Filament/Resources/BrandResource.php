@@ -49,7 +49,7 @@ class BrandResource extends Resource
                             TextInput::make('name')
                                 ->label('Name')
                                 ->required()
-                                ->placeholder('Category Name')
+                                ->placeholder('Brand Name')
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(fn(string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
                             TextInput::make('slug')
