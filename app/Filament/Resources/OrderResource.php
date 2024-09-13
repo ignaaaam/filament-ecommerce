@@ -9,13 +9,22 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Illuminate\Support\Number;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Group;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Textarea;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Columns\SelectColumn;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\ToggleButtons;
 use App\Filament\Resources\OrderResource\Pages;
 
@@ -70,7 +79,8 @@ class OrderResource extends Resource
                             'usd' => 'USD',
                             'eur' => 'EUR',
                             'gbp' => 'GBP',
-                        ])->default('usd')->required(),
+                        ])->default('usd')
+                            ->required(),
 
                         Select::make('shipping_method')->options([
                             'fedex' => 'FedEx',
@@ -84,42 +94,61 @@ class OrderResource extends Resource
 
                     Section::make('Order Items')->schema([
                         Repeater::make('items')
-                        ->relationship()
-                        ->schema([
-                            Select::make('product_id')
-                            ->relationship('product', 'name')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->distinct()
-                            ->disableOptionsWhenSelectedInSiblingRepeaterItems()
-                            ->columnSpan(4)
-                            ->reactive()
-                            ->afterStateUpdated(fn ($state, Set $set) => $set('unit_amount', Product::find($state)?->price ?? 0))
-                            ->afterStateUpdated(fn ($state, Set $set) => $set('total_amount', Product::find($state)?->price ?? 0)),
+                            ->relationship()
+                            ->schema([
+                                Select::make('product_id')
+                                    ->relationship('product', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required()
+                                    ->distinct()
+                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                    ->columnSpan(4)
+                                    ->reactive()
+                                    ->afterStateUpdated(fn($state, Set $set) => $set('unit_amount', Product::find($state)?->price ?? 0))
+                                    ->afterStateUpdated(fn($state, Set $set) => $set('total_amount', Product::find($state)?->price ?? 0)),
 
-                            TextInput::make('quantity')
-                            ->numeric()
-                            ->required()
-                            ->default(1)
-                            ->minValue(1)
-                            ->columnSpan(2)
-                            ->reactive()
-                            ->afterStateUpdated(fn ($state, Set $set, Get $get) => $set('total_amount', $state*$get('unit_amount')) ),
+                                TextInput::make('quantity')
+                                    ->numeric()
+                                    ->required()
+                                    ->default(1)
+                                    ->minValue(1)
+                                    ->columnSpan(2)
+                                    ->reactive()
+                                    ->afterStateUpdated(fn($state, Set $set, Get $get) => $set('total_amount', $state * $get('unit_amount'))),
 
-                            TextInput::make('unit_amount')
-                            ->numeric()
-                            ->required()
-                            ->disabled()
-                            ->dehydrated()
-                            ->columnSpan(3),
-                            TextInput::make('total_amount')
-                            ->numeric()
-                            ->required()
-                            ->disabled()
-                            ->dehydrated()
-                            ->columnSpan(3),
-                        ])->columns(12),
+                                TextInput::make('unit_amount')
+                                    ->numeric()
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(3),
+                                TextInput::make('total_amount')
+                                    ->numeric()
+                                    ->required()
+                                    ->disabled()
+                                    ->dehydrated()
+                                    ->columnSpan(3),
+                            ])->columns(12),
+
+                        Placeholder::make('grand_total_placeholder')
+                            ->label('Grand Total')
+                            ->content(function (Get $get, Set $set) {
+                                $total = 0;
+                                if (!$repeaters = $get('items')) {
+                                    return $total;
+                                }
+
+                                foreach ($repeaters as $key => $repeater) {
+                                    $total += $get("items.{$key}.total_amount");
+                                }
+
+                                $set('grand_total', $total);
+                                return Number::currency($total, $get('currency'));
+                            }),
+
+                        Hidden::make('grand_total')
+                            ->default(0),
                     ]),
                 ])->columnSpanFull(),
             ]);
@@ -129,13 +158,71 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('user.name')
+                    ->label('Customer')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('grand_total')
+                    ->label('Grand Total')
+                    ->numeric()
+                    ->sortable()
+                    ->searchable()
+                    ->money('EUR'),
+
+                TextColumn::make('payment_method')
+                    ->label('Payment Method')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('payment_status')
+                    ->label('Payment Status')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('currency')
+                    ->sortable()
+                    ->searchable(),
+
+                TextColumn::make('shipping_method')
+                    ->sortable()
+                    ->searchable(),
+
+                SelectColumn::make('status')
+                    ->options([
+                        'new' => 'New',
+                        'processing' => 'Processing',
+                        'shipped' => 'Shipped',
+                        'delivered' => 'Delivered',
+                        'cancelled' => 'Cancelled',
+                    ])
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                        ->dateTime()
+                        ->sortable()
+                        ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('updated_at')
+                        ->dateTime()
+                        ->sortable()
+                        ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                ActionGroup::make([
+                    ViewAction::make(),
+                    EditAction::make(),
+                    DeleteAction::make(),
+                ]),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -149,6 +236,11 @@ class OrderResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 
     public static function getPages(): array
