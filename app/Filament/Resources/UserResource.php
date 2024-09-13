@@ -2,16 +2,16 @@
 
 namespace App\Filament\Resources;
 
-use App\Models\User;
-use Filament\Tables;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Filament\Resources\Resource;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Actions\ActionGroup;
-use Filament\Forms\Components\DateTimePicker;
 use App\Filament\Resources\UserResource\Pages;
+use App\Models\User;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class UserResource extends Resource
 {
@@ -44,7 +44,7 @@ class UserResource extends Resource
                     ->password()
                     ->minLength(6)
                     ->maxLength(50)
-                    ->dehydrated(fn($state) => filled($state))
+                    ->dehydrated(fn ($state) => filled($state))
                     ->placeholder('********'),
             ]);
     }

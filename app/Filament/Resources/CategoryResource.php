@@ -2,23 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use Filament\Tables;
-use Filament\Forms\Set;
+use App\Filament\Resources\CategoryResource\Pages;
 use App\Models\Category;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Illuminate\Support\Str;
-use Filament\Resources\Resource;
-use Filament\Tables\Actions\ActionGroup;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Forms\Set;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Actions\ActionGroup;
+use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\ViewAction;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\FileUpload;
-use Filament\Tables\Actions\DeleteAction;
-use App\Filament\Resources\CategoryResource\Pages;
+use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class CategoryResource extends Resource
 {
@@ -38,7 +38,7 @@ class CategoryResource extends Resource
                                 ->required()
                                 ->placeholder('Category Name')
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn(string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
+                                ->afterStateUpdated(fn (string $operation, $state, Set $set) => $operation === 'create' ? $set('slug', Str::slug($state)) : null),
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required()
